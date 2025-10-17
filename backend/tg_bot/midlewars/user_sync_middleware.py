@@ -13,10 +13,6 @@ logger = logging.getLogger(__name__)
 class UserSyncMiddleware(BaseMiddleware):
     """Middleware для синхронизации пользователей Telegram с базой."""
 
-    def __init__(self, session_factory: Callable[[], AsyncSession]):
-        super().__init__()
-        self.session_factory = session_factory
-
     async def __call__(
         self,
         handler: Callable[[Update, Dict[str, Any]], Awaitable[Any]],
@@ -34,21 +30,37 @@ class UserSyncMiddleware(BaseMiddleware):
             tg_user = event.inline_query.from_user
 
         if tg_user:
-            async with self.session_factory() as session:
-                user = await session.scalar(select(TelegramUser).where(TelegramUser.id == tg_user.id))
-                if not user:
-                    user = TelegramUser(
-                        id=tg_user.id,
-                        is_bot=tg_user.is_bot,
-                        first_name=tg_user.first_name,
-                        last_name=tg_user.last_name,
-                        username=tg_user.username,
-                        language_code=tg_user.language_code,
-                    )
-                    session.add(user)
-                    logger.info(f"👤 Новый пользователь добавлен: {tg_user.username or tg_user.id}")
-                else:
-                    user.updated_at = user.updated_at  # вызовет onupdate
-                await session.commit()
+            session = data.get("db_session")
+            if not session:
+                logger.warning(
+                    "⚠️ session not found in data — check DBSessionMiddleware order"
+                )
+                return await handler(event, data)
+
+            user = await session.scalar(
+                select(TelegramUser).where(TelegramUser.id == tg_user.id)
+            )
+
+            is_new_user = False
+            if not user:
+                user = TelegramUser(
+                    id=tg_user.id,
+                    is_bot=tg_user.is_bot,
+                    first_name=tg_user.first_name,
+                    last_name=tg_user.last_name,
+                    username=tg_user.username,
+                    language_code=tg_user.language_code,
+                )
+                session.add(user)
+                is_new_user = True
+                logger.info(
+                    f"👤 Новый пользователь добавлен: {tg_user.username or tg_user.id}"
+                )
+            else:
+                user.updated_at = user.updated_at  # вызовет onupdate
+            await session.commit()
+
+            data["db_user"] = user
+            data["is_new_user"] = is_new_user
 
         return await handler(event, data)

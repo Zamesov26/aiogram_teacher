@@ -11,7 +11,7 @@ class TelegramUser(Base):
 
     __tablename__ = "telegram_users"
 
-    id: Mapped[int] = mapped_column(BigInteger, primary_key=True, autoincrement=False)  
+    id: Mapped[int] = mapped_column(BigInteger, primary_key=True, autoincrement=False)
     # Telegram ID — большой int, не автоинкрементный
 
     is_bot: Mapped[bool] = mapped_column(Boolean, nullable=False, default=False)

@@ -1,10 +1,10 @@
 import asyncio
 
 from aiogram import Bot, Dispatcher
+from aiogram.fsm.storage.memory import MemoryStorage
 from aiogram.types import Update
-from sqlalchemy.ext.asyncio import create_async_engine, async_sessionmaker
+from sqlalchemy.ext.asyncio import AsyncSession
 
-from backend.settings import Settings
 from backend.tg_bot.config import TGSettings
 from backend.tg_bot.midlewars.setup import setup_middlewares
 from backend.tg_bot.queue.protocol import AsyncQueueProtocol
@@ -17,16 +17,17 @@ class BotApp:
     """Приложение Telegram-бота."""
 
     def __init__(
-        self, settings: Settings, queue: AsyncQueueProtocol[Update] | None = None
+        self,
+        settings: TGSettings,
+        db_session_factory: AsyncSession,
+        queue: AsyncQueueProtocol[Update] | None = None,
     ):
-        self.bot = Bot(token=settings.tg.token)
-        self.dp = Dispatcher()
+        self.bot = Bot(token=settings.token)
+        storage = MemoryStorage()
+        self.dp = Dispatcher(storage=storage)
         self.dp.include_router(setup_routers())
-        
-        engine = create_async_engine(settings.db.url)
-        session_factory = async_sessionmaker(engine, expire_on_commit=False)
-        
-        setup_middlewares(self.dp, session_factory=session_factory)
+
+        setup_middlewares(self.dp, session_factory=db_session_factory)
 
         if not queue:
             self.queue = asyncio.Queue()
