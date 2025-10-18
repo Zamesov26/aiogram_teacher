@@ -1,7 +1,7 @@
 import typing
-from datetime import datetime
+from datetime import datetime, UTC
 
-from sqlalchemy import BigInteger, ForeignKey, DateTime, String
+from sqlalchemy import BigInteger, ForeignKey, DateTime, String, Boolean, text
 from sqlalchemy.orm import Mapped, mapped_column, backref, relationship
 
 if typing.TYPE_CHECKING:
@@ -23,8 +23,13 @@ class TGAdmin(Base):
     )
     username: Mapped[str] = mapped_column(String(64), unique=True, nullable=True)
     password: Mapped[str] = mapped_column(String(128), nullable=True)  # хэш пароля
-    created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
+    is_active: Mapped[bool] = mapped_column(Boolean, default=True, server_default=text('TRUE'), nullable=False)
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), default=datetime.now(UTC)
+    )
 
     user: Mapped["TelegramUser"] = relationship(
-        "TelegramUser", backref=backref("admin", uselist=False)
+        "TelegramUser",
+        back_populates="admin",
+        uselist=False,
     )

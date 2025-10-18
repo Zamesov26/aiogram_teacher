@@ -1,7 +1,7 @@
 import typing
-from datetime import datetime
+from datetime import datetime, UTC
 
-from sqlalchemy import String, Boolean, BigInteger, DateTime, ForeignKey
+from sqlalchemy import String, Boolean, BigInteger, DateTime, ForeignKey, Table, Column
 from sqlalchemy.orm import Mapped, mapped_column, relationship, backref
 
 
@@ -26,11 +26,13 @@ class Teacher(Base):
     subject: Mapped[str] = mapped_column(String(64), nullable=True)
     bio: Mapped[str] = mapped_column(String(256), nullable=True)
     is_active: Mapped[bool] = mapped_column(Boolean, default=True, nullable=False)
-    created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), default=datetime.now(UTC)
+    )
     updated_at: Mapped[datetime] = mapped_column(
-        DateTime, default=datetime.utcnow, onupdate=datetime.utcnow
+        DateTime(timezone=True), default=datetime.now(UTC), onupdate=datetime.now(UTC)
     )
 
     user: Mapped["TelegramUser"] = relationship(
-        "TelegramUser", backref=backref("teacher", uselist=False)
+        "TelegramUser", back_populates="teacher", uselist=False
     )

@@ -1,7 +1,8 @@
-from datetime import datetime
+from datetime import datetime, UTC
+from typing import Optional
 
 from sqlalchemy import BigInteger, Boolean, String, DateTime
-from sqlalchemy.orm import Mapped, mapped_column
+from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from backend.database.models.base import Base
 
@@ -22,7 +23,23 @@ class TelegramUser(Base):
 
     # дополнительные поля
     is_active: Mapped[bool] = mapped_column(Boolean, nullable=False, default=True)
-    created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), default=datetime.now(UTC)
+    )
     updated_at: Mapped[datetime] = mapped_column(
-        DateTime, default=datetime.utcnow, onupdate=datetime.utcnow
+        DateTime(timezone=True), default=datetime.now(UTC), onupdate=datetime.now(UTC)
+    )
+
+    admin: Mapped[Optional["TGAdmin"]] = relationship(
+        "TGAdmin",
+        back_populates="user",
+        uselist=False,
+    )
+    teacher: Mapped[Optional["Teacher"]] = relationship(
+        "Teacher", back_populates="user", uselist=False
+    )
+    groups: Mapped[list["Group"]] = relationship(
+        "Group",
+        secondary="group_users",
+        back_populates="users",
     )

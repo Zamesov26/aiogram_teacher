@@ -6,6 +6,7 @@ from backend.database.dependencies import get_session
 
 router = APIRouter(prefix="/lessons", tags=["lessons"])
 
+
 @router.get("/")
 async def list_lessons(session: AsyncSession = Depends(get_session)):
     lessons = await session.scalars(select(Lesson))

@@ -1,4 +1,5 @@
 from aiogram import Router, F
+from aiogram.filters.callback_data import CallbackData
 from aiogram.fsm.context import FSMContext
 from aiogram.fsm.state import StatesGroup, State
 from aiogram.types import (
@@ -7,7 +8,6 @@ from aiogram.types import (
     InlineKeyboardButton,
     CallbackQuery,
 )
-from aiogram.filters import CommandStart
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -16,24 +16,9 @@ from backend.database.models import TGAdmin, Teacher, TelegramUser
 router = Router()
 
 
-@router.message(CommandStart())
-async def start_handler(message: Message, db_user, is_new_user):
-    """Простой ответ на команду /start."""
-    keyboard = InlineKeyboardMarkup(
-        inline_keyboard=[
-            [
-                InlineKeyboardButton(
-                    text="👩‍🏫 Наставник", callback_data="role_teacher"
-                ),
-                InlineKeyboardButton(text="👨‍🎓 Ученик", callback_data="role_student"),
-            ]
-        ]
-    )
-
-    await message.answer(
-        "Укажите свою роль",
-        reply_markup=keyboard,
-    )
+class StudentAction(CallbackData, prefix="student"):
+    action: str
+    id: int
 
 
 @router.callback_query(F.data == "role_teacher")
@@ -140,3 +125,8 @@ async def process_teacher_id(
         print(f"Ошибка при отправке учителю {teacher_id}: {e}")
 
     await state.clear()
+
+
+@router.callback_query(F.data.startswith == "approve_student:")
+async def handle_student(callback: CallbackQuery, state: FSMContext):
+    pass

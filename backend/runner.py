@@ -8,7 +8,7 @@ from backend.tg_bot.app import BotApp
 
 async def run():
     settings = Settings()
-    
+
     bot_app = BotApp(settings.tg, db_session_factory=db_session_factory)
     api_app = ApiApp(settings.api)
 

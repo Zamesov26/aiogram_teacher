@@ -1,8 +1,7 @@
 from fastapi import FastAPI
-from sqladmin import Admin
 
 from .handlers.router import api_router
-from ..admin.app import DatabaseAuth, LessonAdmin, TaskAdmin, TeacherAdmin
+from ..admin.register import init_admin
 from ..database.engine import engine
 
 
@@ -13,12 +12,9 @@ class ApiApp:
         self.settings = settings
         self.app = FastAPI(title=self.settings.title, version=self.settings.version)
         self.app.include_router(api_router)
-        admin = Admin(self.app, engine, authentication_backend=DatabaseAuth(secret_key="super-secret"))
 
-        admin.add_view(LessonAdmin)
-        admin.add_view(TaskAdmin)
-        admin.add_view(TeacherAdmin)
-        
+        init_admin(self.app, engine)
+
     async def run(self):
         """Запуск FastAPI через Uvicorn."""
         import uvicorn

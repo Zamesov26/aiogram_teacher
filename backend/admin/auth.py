@@ -1,11 +1,10 @@
-from fastapi import FastAPI
-from sqladmin import Admin, ModelView
-from sqladmin.authentication import AuthenticationBackend
-from starlette.requests import Request
-from sqlalchemy import select
-from backend.database.engine import db_session_factory, engine
-from backend.database.models import Lesson, Task, Teacher, TGAdmin as AdminModel
 from passlib.hash import bcrypt
+from sqladmin.authentication import AuthenticationBackend
+from sqlalchemy import select
+from starlette.requests import Request
+
+from backend.database.engine import db_session_factory
+from backend.database.models import TGAdmin as AdminModel
 
 
 class DatabaseAuth(AuthenticationBackend):
@@ -37,17 +36,3 @@ class DatabaseAuth(AuthenticationBackend):
 
     async def authenticate(self, request: Request):
         return request.session.get("user")
-
-# 🔹 Регистрируем модели
-class LessonAdmin(ModelView, model=Lesson):
-    column_list = [Lesson.id, Lesson.title, Lesson.created_at]
-
-
-class TaskAdmin(ModelView, model=Task):
-    column_list = [Task.id, Task.text, Task.is_active]
-
-
-class TeacherAdmin(ModelView, model=Teacher):
-    column_list = [Teacher.id, Teacher.user_id, Teacher.subject, Teacher.is_active]
-
-
