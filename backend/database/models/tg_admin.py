@@ -23,7 +23,9 @@ class TGAdmin(Base):
     )
     username: Mapped[str] = mapped_column(String(64), unique=True, nullable=True)
     password: Mapped[str] = mapped_column(String(128), nullable=True)  # хэш пароля
-    is_active: Mapped[bool] = mapped_column(Boolean, default=True, server_default=text('TRUE'), nullable=False)
+    is_active: Mapped[bool] = mapped_column(
+        Boolean, default=True, server_default=text("TRUE"), nullable=False
+    )
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), default=datetime.now(UTC)
     )

@@ -38,8 +38,6 @@ class TelegramUser(Base):
     teacher: Mapped[Optional["Teacher"]] = relationship(
         "Teacher", back_populates="user", uselist=False
     )
-    groups: Mapped[list["Group"]] = relationship(
-        "Group",
-        secondary="group_users",
-        back_populates="users",
+    group_memberships: Mapped[list["GroupUser"]] = relationship(
+        "GroupUser", back_populates="user", cascade="all, delete-orphan"
     )

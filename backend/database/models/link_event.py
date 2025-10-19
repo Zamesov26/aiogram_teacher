@@ -10,9 +10,8 @@ from backend.database.models.base import Base
 
 
 class LinkType(str, PyEnum):
-    REFERRAL = "referral"
-    COURSE_INVITE = "course_invite"
-    TEACHER_INVITE = "teacher_invite"
+    REFERRAL_TEACHER = "referral_teacher"
+    GROUP_INVITE = "group_invite"
     PROMO = "promo"
 
 

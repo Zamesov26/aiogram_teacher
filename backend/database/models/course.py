@@ -29,6 +29,9 @@ class Course(Base):
         cascade="all, delete-orphan",
     )
 
+    def __repr__(self):
+        return f"{self.id}:{self.title}"
+
 
 lesson_progress = Table(
     "lesson_progress",
@@ -83,6 +86,12 @@ class Lesson(Base):
         "Course",
         back_populates="lessons",
     )
+    group_access: Mapped[list["GroupLesson"]] = relationship(
+        "GroupLesson", back_populates="lesson", cascade="all, delete-orphan"
+    )
+
+    def __repr__(self):
+        return f"{self.id}:{self.title}"
 
 
 class Task(Base):
@@ -108,3 +117,48 @@ class Task(Base):
         secondary=lesson_tasks,
         back_populates="tasks",
     )
+
+    def __repr__(self):
+        return f"{self.id}:{self.text}"
+
+
+class TaskProgress(Base):
+    """Прогресс выполнения задач учеником."""
+
+    __tablename__ = "task_progress"
+
+    user_id: Mapped[int] = mapped_column(
+        ForeignKey("telegram_users.id", ondelete="CASCADE"),
+        primary_key=True,
+    )
+    task_id: Mapped[int] = mapped_column(
+        ForeignKey("tasks.id", ondelete="CASCADE"),
+        primary_key=True,
+    )
+    lesson_id: Mapped[int] = mapped_column(
+        ForeignKey("lessons.id", ondelete="CASCADE"),
+        nullable=False,
+    )
+    group_id: Mapped[int] = mapped_column(
+        ForeignKey("groups.id", ondelete="CASCADE"), nullable=False
+    )
+
+    status: Mapped[str] = mapped_column(
+        String(16),
+        default="pending",  # pending / done / failed
+        nullable=False,
+    )
+
+    is_checked: Mapped[bool] = mapped_column(Boolean, default=False, nullable=False)
+
+    updated_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True),
+        default=lambda: datetime.now(UTC),
+        onupdate=lambda: datetime.now(UTC),
+        nullable=False,
+    )
+
+    user = relationship("TelegramUser", backref="task_progress")
+    task = relationship("Task", backref="progress")
+    lesson = relationship("Lesson", backref="task_progress")
+    group = relationship("Group", backref="task_progress")
