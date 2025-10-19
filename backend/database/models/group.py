@@ -16,7 +16,7 @@ from backend.database.models.base import Base
 
 if TYPE_CHECKING:
     from backend.database.models.course import Course
-    from backend.database.models import TelegramUser
+    from backend.database.models import TelegramUser, Lesson, LinkEvent
 
 
 class GroupUser(Base):
@@ -113,12 +113,10 @@ class GroupLesson(Base):
     __tablename__ = "group_lessons"
 
     id: Mapped[int] = mapped_column(primary_key=True, autoincrement=True)
-
     group_id: Mapped[int] = mapped_column(
         ForeignKey("groups.id", ondelete="CASCADE"),
         nullable=False,
     )
-
     lesson_id: Mapped[int] = mapped_column(
         ForeignKey("lessons.id", ondelete="CASCADE"),
         nullable=False,

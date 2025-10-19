@@ -1,10 +1,15 @@
 from datetime import datetime, UTC
-from typing import Optional
+from typing import Optional, TYPE_CHECKING
 
 from sqlalchemy import BigInteger, Boolean, String, DateTime
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
+
 from backend.database.models.base import Base
+
+if TYPE_CHECKING:
+    from backend.database.models import TGAdmin, Teacher
+    from backend.database.models.group import GroupUser
 
 
 class TelegramUser(Base):

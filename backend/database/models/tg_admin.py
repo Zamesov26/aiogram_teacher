@@ -2,7 +2,7 @@ import typing
 from datetime import datetime, UTC
 
 from sqlalchemy import BigInteger, ForeignKey, DateTime, String, Boolean, text
-from sqlalchemy.orm import Mapped, mapped_column, backref, relationship
+from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 if typing.TYPE_CHECKING:
     from backend.database.models import TelegramUser
