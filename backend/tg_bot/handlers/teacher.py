@@ -7,6 +7,7 @@ from sqlalchemy import select, exists
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker
 from sqlalchemy.orm import raiseload, joinedload
 
+from backend.database.dao import TeacherDAO
 from backend.database.models import Group, Lesson, GroupLesson, TaskProgress
 from backend.database.models.group import GroupUser
 from backend.services.link_service import LinkService
@@ -40,14 +41,9 @@ async def handle_group_menu(
 ):
     group_id = int(callback.data.split(":")[1])
     async with session_factory() as session:
-        query = select(
-            exists()
-            .where(Group.id == group_id)
-            .where(Group.teacher_id == callback.from_user.id)
-            .where(Group.is_active.is_(True))
-        )
-        res = await session.scalar(query)
-        if not res:
+        if not await TeacherDAO(session).has_access_to_group(
+            teacher_id=callback.from_user.id, group_id=group_id
+        ):
             return
 
     kb = InlineKeyboardBuilder()
@@ -63,15 +59,9 @@ async def handle_group_link(
 ):
     group_id = int(callback.data.split(":")[1])
     async with session_factory() as session:
-        query = select(
-            exists()
-            .where(Group.id == group_id)
-            .where(Group.teacher_id == callback.from_user.id)
-            .where(Group.is_active.is_(True))
-        )
-        res = await session.scalar(query)
-        if not res:
-            # TODO нужно регистрировать лог и разбираться как это могло получиться
+        if not await TeacherDAO(session).has_access_to_group(
+            teacher_id=callback.from_user.id, group_id=group_id
+        ):
             return
 
         link = await LinkService(session).create_group_invite_code(
@@ -90,15 +80,9 @@ async def handle_group_lesson_list(
 ):
     group_id = int(callback.data.split(":")[1])
     async with session_factory() as session:
-        query = select(
-            exists()
-            .where(Group.id == group_id)
-            .where(Group.teacher_id == callback.from_user.id)
-            .where(Group.is_active.is_(True))
-        )
-        res = await session.scalar(query)
-        if not res:
-            # TODO нужно регистрировать лог и разбираться как это могло получиться
+        if not await TeacherDAO(session).has_access_to_group(
+            teacher_id=callback.from_user.id, group_id=group_id
+        ):
             return
 
         lessons_query = (
@@ -146,15 +130,9 @@ async def handle_group_open_lesson(
 ):
     group_id, lesson_id = map(int, callback.data.split(":")[1:])
     async with session_factory() as session:
-        query = select(
-            exists()
-            .where(Group.id == group_id)
-            .where(Group.teacher_id == callback.from_user.id)
-            .where(Group.is_active.is_(True))
-        )
-        res = await session.scalar(query)
-        if not res:
-            # TODO нужно регистрировать лог и разбираться как это могло получиться
+        if not await TeacherDAO(session).has_access_to_group(
+            teacher_id=callback.from_user.id, group_id=group_id
+        ):
             return
 
         gl = await session.scalar(
@@ -262,5 +240,3 @@ async def handle_group_open_lesson(
                     await bot.send_message(uid, msg)
                 except Exception as e:
                     print(f"⚠️ Не удалось отправить сообщение {uid}: {e}")
-
-

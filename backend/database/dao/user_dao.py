@@ -4,7 +4,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from backend.database.models import TelegramUser
 
 
-class UserService:
+class UserDAO:
     def __init__(self, session: AsyncSession):
         self.session = session
 
@@ -22,6 +22,5 @@ class UserService:
                 language_code=tg_user.language_code,
             )
             self.session.add(user)
-            await self.session.commit()
             return user, True
         return user, False

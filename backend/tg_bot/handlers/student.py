@@ -12,13 +12,14 @@ from backend.database.models.group import GroupUser, GroupLesson
 
 router = Router()
 
+
 @router.callback_query(F.data == "get_task")
 async def handle_get_task(
     callback: CallbackQuery,
     session_factory: async_sessionmaker[AsyncSession],
 ):
     user_id = callback.from_user.id
-    
+
     async with session_factory() as session:
         # Находим активную группу ученика, где есть открытые уроки
         group = await session.scalar(
@@ -30,13 +31,13 @@ async def handle_get_task(
                 GroupUser.is_active.is_(True),
                 GroupLesson.is_open.is_(True),
                 Group.is_active.is_(True),
-                )
+            )
         )
-        
+
         if not group:
             await callback.message.answer("🚫 У тебя пока нет активных уроков.")
             return
-        
+
         # Находим первую невыполненную задачу
         tp = await session.scalar(
             select(TaskProgress)
@@ -45,24 +46,24 @@ async def handle_get_task(
                 TaskProgress.user_id == user_id,
                 TaskProgress.group_id == group.id,
                 TaskProgress.status == "pending",
-                )
+            )
             .options(joinedload(TaskProgress.task))
             .order_by(Task.id.asc())
         )
-        
+
         if not tp:
             await callback.message.answer("🎉 Все задания уже выполнены!")
             return
-        
+
         task = tp.task
         lesson = await session.scalar(select(Lesson).where(Lesson.id == tp.lesson_id))
-        
+
         # Кнопки
         kb = InlineKeyboardBuilder()
         kb.button(text="✅ Выполнил", callback_data=f"task_done:{task.id}")
         kb.button(text="❌ Не получилось", callback_data=f"task_fail:{task.id}")
         kb.adjust(2)
-        
+
         text = (
             f"📘 <b>{lesson.title}</b>\n\n"
             f"🧩 <b>Задание:</b>\n{task.text}\n\n"
@@ -79,7 +80,7 @@ async def handle_task_done(
 ):
     task_id = int(callback.data.split(":")[1])
     user_id = callback.from_user.id
-    
+
     async with session_factory() as session:
         tp = await session.scalar(
             select(TaskProgress).where(
@@ -89,7 +90,7 @@ async def handle_task_done(
         if not tp:
             await callback.answer("⚠️ Задание не найдено.", show_alert=True)
             return
-        
+
         tp.status = "done"
         tp.updated_at = datetime.now(UTC)
         await session.commit()
@@ -105,7 +106,7 @@ async def handle_task_fail(
 ):
     task_id = int(callback.data.split(":")[1])
     user_id = callback.from_user.id
-    
+
     async with session_factory() as session:
         tp = await session.scalar(
             select(TaskProgress).where(
@@ -115,7 +116,7 @@ async def handle_task_fail(
         if not tp:
             await callback.answer("⚠️ Задание не найдено.", show_alert=True)
             return
-        
+
         tp.status = "failed"
         tp.updated_at = datetime.now(UTC)
         await session.commit()
