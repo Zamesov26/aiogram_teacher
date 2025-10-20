@@ -1,15 +1,14 @@
-from datetime import datetime, UTC
-
 from aiogram import Router, F
 from aiogram.types import CallbackQuery
 from aiogram.utils.keyboard import InlineKeyboardBuilder
-from sqlalchemy import select, exists
+from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker
 from sqlalchemy.orm import raiseload, joinedload
 
 from backend.database.dao import TeacherDAO
 from backend.database.models import Group, Lesson, GroupLesson, TaskProgress
 from backend.database.models.group import GroupUser
+from backend.services.assignments_service import AssignmentsService
 from backend.services.link_service import LinkService
 
 router = Router()
@@ -134,64 +133,25 @@ async def handle_group_open_lesson(
             teacher_id=callback.from_user.id, group_id=group_id
         ):
             return
-
-        gl = await session.scalar(
-            select(GroupLesson).where(
-                GroupLesson.group_id == group_id,
-                GroupLesson.lesson_id == lesson_id,
-            )
+        
+        gl = await AssignmentsService(session).open_lesson_for_group(
+            group_id=group_id, lesson_id=lesson_id, teacher_id=callback.from_user.id
         )
-
         if not gl:
-            gl = GroupLesson(
-                group_id=group_id,
-                lesson_id=lesson_id,
-                is_open=True,
-                opened_at=datetime.now(UTC),
-                opened_by_id=callback.from_user.id,
-            )
-            session.add(gl)
-            text = "✅ Урок открыт."
-        else:
-            gl.is_open = not gl.is_open
-            gl.opened_at = datetime.now(UTC) if gl.is_open else None
-            text = "🔒 Урок закрыт." if not gl.is_open else "✅ Урок открыт."
+            return
 
-        await session.commit()
-        await callback.answer(text, show_alert=True)
+        # TODO перенести ниже после создание прогресса по задачам
 
-        gl = await session.scalar(
-            select(GroupLesson).where(
-                GroupLesson.group_id == group_id,
-                GroupLesson.lesson_id == lesson_id,
-            )
-        )
-
-        # Получаем сам урок и группу
+        # Получаем сам урок и его задачи
         lesson = await session.scalar(
             select(Lesson)
             .where(Lesson.id == lesson_id)
             .options(joinedload(Lesson.tasks))
         )
+        # Получаем группу
         group = await session.scalar(select(Group).where(Group.id == group_id))
 
-        if not gl:
-            gl = GroupLesson(
-                group_id=group_id,
-                lesson_id=lesson_id,
-                is_open=True,
-                opened_at=datetime.now(UTC),
-                opened_by_id=callback.from_user.id,
-            )
-            session.add(gl)
-            text = f"✅ Урок «{lesson.title}» открыт."
-        else:
-            gl.opened_at = datetime.now(UTC) if gl.is_open else None
-            text = f"✅ Урок «{lesson.title}» открыт."
-
-        await session.commit()
-        await callback.answer(text, show_alert=True)
-
+        # получаем студентов для оповещения
         student_ids = await session.scalars(
             select(GroupUser.user_id).where(
                 GroupUser.group_id == group_id,
@@ -201,7 +161,9 @@ async def handle_group_open_lesson(
         )
         student_ids = list(student_ids)
 
-        if gl.is_open and lesson.tasks and student_ids:
+        # TODO нужно вынести в отдельную таску
+        # Проходим по всем студентам, создаем запись связи задачи и ученика, отправляем оповещение
+        if lesson.tasks and student_ids:
             for task in lesson.tasks:
                 existing = await session.scalars(
                     select(TaskProgress.user_id).where(
@@ -225,14 +187,16 @@ async def handle_group_open_lesson(
                 ]
 
                 session.add_all(new_records)
-            await session.commit()
+                
+        await session.commit()
+        await callback.answer("✅ Урок открыт.", show_alert=True)
 
         if student_ids:
             msg = (
                 f"📢 Учитель открыл новый урок в вашей группе: {group.title}\n\n"
                 f"Тема: «{lesson.title}» 📘\n"
                 f"Всего заданий: {len(lesson.tasks)}\n\n"
-                f"НО вы еще не можете приступить к выполнению))))"
+                f"Чтo-бы приступить к выполнению выберите соответствующий пункт в меню(/menu)"
             )
 
             for uid in student_ids:
